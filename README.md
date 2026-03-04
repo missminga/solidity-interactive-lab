@@ -1,18 +1,18 @@
-# Solidity Interactive Lab
+# Solidity 交互式学习实验室
 
-A beginner-friendly interactive smart contract project.
+一个面向初学者的智能合约交互项目。
 
-## What's inside
-- `contracts/Counter.sol`: minimal interactive contract
-- `remix/quickstart.md`: step-by-step deployment via Remix
+## 项目内容
+- `contracts/Counter.sol`：最小可交互计数合约
+- `remix/quickstart.md`：基于 Remix 的快速部署步骤
 
-## Learning goals
-- Understand contract deployment
-- Understand state changes (`increment`/`decrement`)
-- Understand transaction vs read calls
-- Understand gas usage in write operations
+## 学习目标
+- 理解合约部署流程
+- 理解状态变更（`increment` / `decrement`）
+- 区分“读调用”和“写交易”
+- 理解写操作为什么会消耗 Gas
 
-## Next milestones
-1. Add `Ownable` access control
-2. Add tests (Hardhat/Foundry)
-3. Add a small frontend with ethers.js
+## 下一步建议
+1. 增加 `Ownable` 权限控制
+2. 增加测试（Hardhat / Foundry）
+3. 增加一个 ethers.js 小前端用于可视化交互
