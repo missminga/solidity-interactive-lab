@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>区块链理论学习 | Blockchain Theory</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛓️</text></svg>">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div id="app">
+    <nav class="sidebar">
+      <div class="logo">
+        <span class="logo-icon">⛓️</span>
+        <span class="logo-text">区块链理论</span>
+      </div>
+      <ul class="nav-list">
+        <li><a href="#" data-page="home" class="active">🏠 首页</a></li>
+        <li><a href="#" data-page="blockchain">📦 区块与链</a></li>
+        <li><a href="#" data-page="mining">⛏️ 挖矿与共识</a></li>
+        <li><a href="#" data-page="network">🌐 去中心化网络</a></li>
+        <li><a href="#" data-page="keys">🔐 密钥与钱包</a></li>
+        <li><a href="#" data-page="models">💰 UTXO vs 账户</a></li>
+        <li><a href="#" data-page="contracts">📜 智能合约</a></li>
+        <li><a href="#" data-page="usecases">🎯 应用场景</a></li>
+      </ul>
+      <div class="progress-container">
+        <div class="progress-label">学习进度</div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-text" id="progress-text">0 / 7</div>
+      </div>
+    </nav>
+    <main class="content" id="content">
+      <!-- Content will be dynamically loaded -->
+    </main>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
