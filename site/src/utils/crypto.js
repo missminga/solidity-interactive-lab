@@ -5,16 +5,16 @@ export async function sha256(message) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+function secureRandomHex(length) {
+  const bytes = new Uint8Array(Math.ceil(length / 2));
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('').slice(0, length);
+}
+
 export function generateKeyPair() {
-  const privateKey = Array.from({ length: 64 }, () => 
-    Math.floor(Math.random() * 16).toString(16)
-  ).join('');
-  
-  const publicKey = Array.from({ length: 128 }, () => 
-    Math.floor(Math.random() * 16).toString(16)
-  ).join('');
-  
-  return { privateKey, publicKey };
+  const privateKey = secureRandomHex(64);
+  const publicKey = secureRandomHex(128);
+  return { privateKey, publicKey, isDemo: true };
 }
 
 export function generateAddress(publicKey) {
@@ -22,41 +22,5 @@ export function generateAddress(publicKey) {
 }
 
 export function generateTxHash() {
-  return '0x' + Array.from({ length: 64 }, () => 
-    Math.floor(Math.random() * 16).toString(16)
-  ).join('');
-}
-
-export function generateBlockHash(prefix = '') {
-  const hash = Array.from({ length: 64 }, () => 
-    Math.floor(Math.random() * 16).toString(16)
-  ).join('');
-  return prefix + hash.slice(prefix.length);
-}
-
-export async function mineBlock(data, difficulty, onProgress) {
-  let nonce = 0;
-  const target = '0'.repeat(difficulty);
-  
-  while (true) {
-    const hash = await sha256(data + nonce);
-    
-    if (onProgress) {
-      onProgress({ nonce, hash, found: hash.startsWith(target) });
-    }
-    
-    if (hash.startsWith(target)) {
-      return { nonce, hash };
-    }
-    
-    nonce++;
-    
-    if (nonce % 100 === 0) {
-      await new Promise(r => setTimeout(r, 0));
-    }
-    
-    if (nonce > 1000000) {
-      throw new Error('Mining timeout');
-    }
-  }
+  return '0x' + secureRandomHex(64);
 }

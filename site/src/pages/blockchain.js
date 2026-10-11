@@ -1,6 +1,9 @@
 import { sha256 } from '../utils/crypto.js';
+import { escapeHtml } from '../utils/escape.js';
 
 let blocks = [];
+let blockElements = [];
+let updateSequence = 0;
 
 export function renderBlockchain() {
   return `
@@ -76,7 +79,6 @@ export function renderBlockchain() {
             修改任意区块的数据，观察后续区块的哈希如何变化
           </p>
           <div class="blockchain-visual" id="blockchain-visual">
-            <!-- Blocks will be rendered here -->
           </div>
           <div class="btn-group">
             <button class="btn btn-secondary" id="reset-chain">重置链</button>
@@ -117,60 +119,149 @@ async function createBlock(index, data, prevHash) {
   return { index, data, prevHash, hash };
 }
 
-async function renderBlocks() {
+function createBlockElement(block, index) {
+  const blockDiv = document.createElement('div');
+  blockDiv.className = 'block valid';
+  blockDiv.dataset.index = index;
+  
+  const header = document.createElement('div');
+  header.className = 'block-header';
+  header.textContent = `区块 #${block.index}`;
+  
+  const dataField = document.createElement('div');
+  dataField.className = 'block-field';
+  const dataLabel = document.createElement('span');
+  dataLabel.className = 'block-label';
+  dataLabel.textContent = '数据：';
+  const dataInput = document.createElement('input');
+  dataInput.type = 'text';
+  dataInput.className = 'block-input block-data';
+  dataInput.dataset.index = index;
+  dataInput.value = block.data;
+  dataField.appendChild(dataLabel);
+  dataField.appendChild(dataInput);
+  
+  const prevHashField = document.createElement('div');
+  prevHashField.className = 'block-field';
+  const prevHashLabel = document.createElement('span');
+  prevHashLabel.className = 'block-label';
+  prevHashLabel.textContent = '前块哈希：';
+  const prevHashValue = document.createElement('span');
+  prevHashValue.className = 'block-value prev-hash-value';
+  prevHashValue.textContent = block.prevHash.slice(0, 16) + '...';
+  prevHashField.appendChild(prevHashLabel);
+  prevHashField.appendChild(prevHashValue);
+  
+  const hashField = document.createElement('div');
+  hashField.className = 'block-field';
+  const hashLabel = document.createElement('span');
+  hashLabel.className = 'block-label';
+  hashLabel.textContent = '本块哈希：';
+  const hashValue = document.createElement('span');
+  hashValue.className = 'block-value hash hash-value';
+  hashValue.textContent = block.hash.slice(0, 16) + '...';
+  hashField.appendChild(hashLabel);
+  hashField.appendChild(hashValue);
+  
+  blockDiv.appendChild(header);
+  blockDiv.appendChild(dataField);
+  blockDiv.appendChild(prevHashField);
+  blockDiv.appendChild(hashField);
+  
+  return {
+    element: blockDiv,
+    input: dataInput,
+    prevHashValue,
+    hashValue
+  };
+}
+
+function createArrowElement() {
+  const arrow = document.createElement('div');
+  arrow.className = 'chain-arrow';
+  arrow.textContent = '→';
+  return arrow;
+}
+
+function renderBlocksInitial() {
   const container = document.getElementById('blockchain-visual');
   if (!container) return;
   
-  let html = '';
+  container.innerHTML = '';
+  blockElements = [];
+  
   for (let i = 0; i < blocks.length; i++) {
-    const block = blocks[i];
-    const isValid = i === 0 || block.prevHash === blocks[i - 1].hash;
-    const validClass = isValid ? 'valid' : 'invalid';
-    
     if (i > 0) {
-      html += `<div class="chain-arrow ${isValid ? '' : 'broken'}">→</div>`;
+      container.appendChild(createArrowElement());
     }
     
-    html += `
-      <div class="block ${validClass}">
-        <div class="block-header">区块 #${block.index}</div>
-        <div class="block-field">
-          <span class="block-label">数据：</span>
-          <input type="text" class="block-input block-data" data-index="${i}" value="${block.data}">
-        </div>
-        <div class="block-field">
-          <span class="block-label">前块哈希：</span>
-          <span class="block-value">${block.prevHash.slice(0, 16)}...</span>
-        </div>
-        <div class="block-field">
-          <span class="block-label">本块哈希：</span>
-          <span class="block-value hash ${isValid ? '' : 'invalid'}">${block.hash.slice(0, 16)}...</span>
-        </div>
-      </div>
-    `;
+    const blockEl = createBlockElement(blocks[i], i);
+    container.appendChild(blockEl.element);
+    blockElements.push(blockEl);
+    
+    blockEl.input.addEventListener('input', handleBlockInput);
   }
   
-  container.innerHTML = html;
+  updateBlockValidity();
+}
+
+async function handleBlockInput(e) {
+  const index = parseInt(e.target.dataset.index);
+  const newData = e.target.value;
   
-  document.querySelectorAll('.block-data').forEach(input => {
-    input.addEventListener('input', async (e) => {
-      const index = parseInt(e.target.dataset.index);
-      blocks[index].data = e.target.value;
-      
-      for (let i = index; i < blocks.length; i++) {
-        const prevHash = i === 0 ? '0'.repeat(64) : blocks[i - 1].hash;
-        blocks[i].prevHash = prevHash;
-        const content = `${blocks[i].index}${blocks[i].data}${prevHash}`;
-        blocks[i].hash = await sha256(content);
-      }
-      
-      renderBlocks();
-    });
-  });
+  blocks[index].data = newData;
+  
+  const currentSequence = ++updateSequence;
+  
+  for (let i = index; i < blocks.length; i++) {
+    const prevHash = i === 0 ? '0'.repeat(64) : blocks[i - 1].hash;
+    blocks[i].prevHash = prevHash;
+    const content = `${blocks[i].index}${blocks[i].data}${prevHash}`;
+    const hash = await sha256(content);
+    
+    if (currentSequence !== updateSequence) {
+      return;
+    }
+    
+    blocks[i].hash = hash;
+    
+    if (blockElements[i]) {
+      blockElements[i].prevHashValue.textContent = prevHash.slice(0, 16) + '...';
+      blockElements[i].hashValue.textContent = hash.slice(0, 16) + '...';
+    }
+  }
+  
+  updateBlockValidity();
+}
+
+function updateBlockValidity() {
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    const blockEl = blockElements[i];
+    if (!blockEl) continue;
+    
+    let isValid;
+    if (i === 0) {
+      isValid = block.prevHash === '0'.repeat(64);
+    } else {
+      isValid = block.prevHash === blocks[i - 1].hash;
+    }
+    
+    blockEl.element.classList.toggle('valid', isValid);
+    blockEl.element.classList.toggle('invalid', !isValid);
+    blockEl.hashValue.classList.toggle('invalid', !isValid);
+    
+    const arrow = blockEl.element.previousElementSibling;
+    if (arrow && arrow.classList.contains('chain-arrow')) {
+      arrow.classList.toggle('broken', !isValid);
+    }
+  }
 }
 
 async function initChain() {
   blocks = [];
+  updateSequence++;
+  
   const genesisBlock = await createBlock(0, '创世区块', '0'.repeat(64));
   blocks.push(genesisBlock);
   
@@ -180,7 +271,30 @@ async function initChain() {
   const block2 = await createBlock(2, 'Bob 转账 5 给 Charlie', block1.hash);
   blocks.push(block2);
   
-  renderBlocks();
+  renderBlocksInitial();
+}
+
+async function addNewBlock() {
+  const lastBlock = blocks[blocks.length - 1];
+  const newBlock = await createBlock(
+    blocks.length,
+    `交易数据 ${blocks.length}`,
+    lastBlock.hash
+  );
+  blocks.push(newBlock);
+  
+  const container = document.getElementById('blockchain-visual');
+  if (!container) return;
+  
+  container.appendChild(createArrowElement());
+  
+  const blockEl = createBlockElement(newBlock, blocks.length - 1);
+  container.appendChild(blockEl.element);
+  blockElements.push(blockEl);
+  
+  blockEl.input.addEventListener('input', handleBlockInput);
+  
+  updateBlockValidity();
 }
 
 export function initBlockchain(navigateTo) {
@@ -199,17 +313,7 @@ export function initBlockchain(navigateTo) {
   });
   
   document.getElementById('reset-chain')?.addEventListener('click', initChain);
-  
-  document.getElementById('add-block')?.addEventListener('click', async () => {
-    const lastBlock = blocks[blocks.length - 1];
-    const newBlock = await createBlock(
-      blocks.length,
-      `交易数据 ${blocks.length}`,
-      lastBlock.hash
-    );
-    blocks.push(newBlock);
-    renderBlocks();
-  });
+  document.getElementById('add-block')?.addEventListener('click', addNewBlock);
   
   const quizOptions = document.querySelectorAll('.quiz-option');
   const quizFeedback = document.getElementById('quiz-feedback');

@@ -1,7 +1,7 @@
 import './style.css';
 import { renderHome, initHome } from './pages/home.js';
 import { renderBlockchain, initBlockchain } from './pages/blockchain.js';
-import { renderMining, initMining } from './pages/mining.js';
+import { renderMining, initMining, cleanupMining } from './pages/mining.js';
 import { renderNetwork, initNetwork } from './pages/network.js';
 import { renderKeys, initKeys } from './pages/keys.js';
 import { renderModels, initModels } from './pages/models.js';
@@ -11,7 +11,7 @@ import { renderUsecases, initUsecases } from './pages/usecases.js';
 const pages = {
   home: { render: renderHome, init: initHome },
   blockchain: { render: renderBlockchain, init: initBlockchain },
-  mining: { render: renderMining, init: initMining },
+  mining: { render: renderMining, init: initMining, cleanup: cleanupMining },
   network: { render: renderNetwork, init: initNetwork },
   keys: { render: renderKeys, init: initKeys },
   models: { render: renderModels, init: initModels },
@@ -72,12 +72,16 @@ function navigateTo(pageName) {
     return;
   }
   
-  if (currentPage !== 'home' && pageOrder.includes(currentPage)) {
-    completedPages.add(currentPage);
-    saveProgress();
+  if (pages[currentPage]?.cleanup) {
+    pages[currentPage].cleanup();
   }
   
   currentPage = pageName;
+  
+  if (pageOrder.includes(pageName)) {
+    completedPages.add(pageName);
+    saveProgress();
+  }
   
   const content = document.getElementById('content');
   if (content) {

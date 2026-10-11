@@ -3,6 +3,14 @@ import { sha256 } from '../utils/crypto.js';
 let miningInterval = null;
 let isMining = false;
 
+export function cleanupMining() {
+  isMining = false;
+  if (miningInterval) {
+    clearTimeout(miningInterval);
+    miningInterval = null;
+  }
+}
+
 export function renderMining() {
   return `
     <div class="page">
